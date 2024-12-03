@@ -12,10 +12,10 @@
 # Last Modified Date: 10/31/2024
 
 # GLOBALS
-DT=202410
-DTdash=2024-10-31
-PDT=202406
-PDTdash=2024-06-01
+DT=202501
+DTdash=2025-01-31
+PDT=202410
+PDTdash=2024-10-31
 PT=$(date -d"$PDTdash" +%s)
 T=$(date -d"$DTdash" +%s)
 
@@ -23,8 +23,8 @@ T=$(date -d"$DTdash" +%s)
 # Typically, all logs and head files would stay in the gather dir
 # This path is configurable so that we can direct log and headsfile a partition with enough space
 # MODIFY THIS - CURRENTLY TAILORED FOR EXOSPHERE MACHINE
-# /home/exouser/24q3 is a link to shared drive /media/volume/WoC-Data/discovery/24q3
-DATA_PATH="/home/exouser/24q3"
+# /home/exouser/24q4 is a link to shared drive /media/volume/WoC-Data/discovery/24q4
+DATA_PATH="/home/exouser/24q4"
 
 # Test Remotes
 # done through ssh_config -> ~/.ssh/config
@@ -216,7 +216,7 @@ function other_forges() {
   echo https://git.pleroma.social/pleroma/pleroma > $DATA_PATH/git.pleroma.social.$DT
 
   for i in $DATA_PATH/fedorapeople.org.fix.$DT $DATA_PATH/pagure.io.$DT $DATA_PATH/blitiri.com.ar.$DT $DATA_PATH/code.qt.io.$DT $DATA_PATH/gitlab.common-lisp.net.$DT $DATA_PATH/code.ill.fr.$DT $DATA_PATH/forgemia.inra.fr.$DT $DATA_PATH/git.unicaen.fr.$DT $DATA_PATH/notabug.org.$DT $DATA_PATH/git.unistra.fr.$DT $DATA_PATH/gcc.git.$DT $DATA_PATH/gitlab.fing.edu.uy.$DT $DATA_PATH/gitlab.huma-num.fr.$DT $DATA_PATH/gitlab.adullact.net.$DT $DATA_PATH/gitlab.irstea.fr.$DT $DATA_PATH/git.alpinelinux.org.$DT $DATA_PATH/gitlab.cerema.fr.$DT $DATA_PATH/git.openembedded.org.$DT $DATA_PATH/gite.lirmm.fr.$DT $DATA_PATH/git.torproject.org.$DT $DATA_PATH/git.xfce.org.$DT $DATA_PATH/git.yoctoproject.org.$DT $DATA_PATH/framagit.org.$DT $DATA_PATH/gitlab.freedesktop.org.$DT  $DATA_PATH/gitlab.ow2.org.$DT $DATA_PATH/gitbox.apache.org.$DT $DATA_PATH/gitlab.inria.fr.$DT
-  do (sed 's|/\.git/$||;s|^\s*||;s|//|//a:a@|;s|/tree/$||;s|/$||;s|blitiri.com.ar/git/r/|blitiri.com.ar/repos/|;' $i | while read r; do a=$(git ls-remote "$r" 2> $i.err| awk '{print ";"$1}'); echo "$r$a"|sed 's/ //g'; done| gzip > $DATA_PATH/$i.heads; sleep 2) &
+  do (sed 's|/\.git/$||;s|^\s*||;s|//|//a:a@|;s|/tree/$||;s|/$||;s|blitiri.com.ar/git/r/|blitiri.com.ar/repos/|;' $i | while read r; do a=$(git ls-remote "$r" 2> $DATA_PATH/$i.err| awk '{print ";"$1}'); echo "$r$a"|sed 's/ //g'; done| gzip > $DATA_PATH/$i.heads; sleep 2) &
   done
 
   # pages 1-300
@@ -245,7 +245,7 @@ function other_forges() {
   done &
   wait
   for of in {0..9}; do
-    cat $DATA_PATH/git.debian.org.$DT.$of | while read r; do a=$(git ls-remote $r 2> err | awk '{print ";"$1}'); echo $r$a|sed 's/ //g'; sleep 20; done | gzip > $DATA_PATH/git.debian.org.$DT.$of.heads 
+    cat $DATA_PATH/git.debian.org.$DT.$of | while read r; do a=$(git ls-remote $r 2> $DATA_PATH/err | awk '{print ";"$1}'); echo $r$a|sed 's/ //g'; sleep 20; done | gzip > $DATA_PATH/git.debian.org.$DT.$of.heads 
   done
 
   # sort=name_desc
@@ -416,7 +416,7 @@ function dump_mongo() {
 }
 
 # Driver
-# test_remotes
+test_remotes
 # github_discovery
 # bitbucket_discovery
 # sf_discovery
@@ -431,6 +431,5 @@ function dump_mongo() {
 # wait
 # bb_heads
 # wait
-dump_mongo
-exit 1
-
+# dump_mongo
+# exit 0
