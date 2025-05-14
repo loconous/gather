@@ -9,13 +9,13 @@
 # second stage typically requires a much larger disk to store *.heads
 # all *.heads need to be copied to da cluster
 # Last Modified By: Luis Gonzalez Villalobos
-# Last Modified Date: 10/31/2024
+# Last Modified Date: 01/31/2025
 
 # GLOBALS
-DT=202501
-DTdash=2025-01-31
-PDT=202410
-PDTdash=2024-10-31
+DT=202504
+DTdash=2025-04-30
+PDT=202501
+PDTdash=2025-01-31
 PT=$(date -d"$PDTdash" +%s)
 T=$(date -d"$DTdash" +%s)
 
@@ -23,8 +23,10 @@ T=$(date -d"$DTdash" +%s)
 # Typically, all logs and head files would stay in the gather dir
 # This path is configurable so that we can direct log and headsfile a partition with enough space
 # MODIFY THIS - CURRENTLY TAILORED FOR EXOSPHERE MACHINE
+# Make the link with: ln -sf /media/volume/WoC-Data/discovery/24q4/ /home/exouser/24q4 (e.g, ln -sf source_dir path_link)
 # /home/exouser/24q4 is a link to shared drive /media/volume/WoC-Data/discovery/24q4
-DATA_PATH="/home/exouser/24q4"
+DATA_PATH="/home/exouser/25q1"
+PREV_DATA_PATH="/home/exouser/24q4"
 
 # Test Remotes
 # done through ssh_config -> ~/.ssh/config
@@ -33,7 +35,8 @@ function test_remotes() {
   git ls-remote bb:swsc/lookup
   git ls-remote gh:fdac20/news
   git ls-remote gh:php/php-src
-  git ls-remote gl:inkscape/inkscape
+  # git ls-remote gl:inkscape/inkscape # Permissions have been removed
+  git ls-remote gl:saiwp/freebsdsrc
   git ls-remote gl_gnome:GNOME/gtk
   git ls-remote dr:project/drupal
   git ls-remote deb:dpkg-team/dpkg
@@ -56,9 +59,9 @@ function github_discovery() {
   #    echo $(head -$i tokens|tail -1) $ptt $tt 
   # done > tokens_date
 
-  # Ran: token_date_01, 02, 03, 04, 05, 06, 07, 09, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26
-  # Final: done!
-  for i in {1..6}; do (r=$(head -$i token_date_26|tail -1); echo $r | python3 ghUpdatedReposWithCount.py gh$DT repos  &> $DATA_PATH/ghReposList$(echo $r | cut -d ' ' -f2).updt) & done
+  # Ran: token_date_01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15
+  # Next: done
+  for i in {1..6}; do (r=$(head -$i token_date_15|tail -1); echo $r | python3 ghUpdatedReposWithCount.py gh$DT repos  &> $DATA_PATH/ghReposList$(echo $r | cut -d ' ' -f2).updt) & done
 }
 
 function bitbucket_discovery() {
@@ -95,13 +98,13 @@ function gitlab_discovery() {
 
 function other_forges() {
   # Do other forges git.bioconductor.org, 
-  wget http://git.bioconductor.org -O $DATA_PATH/bio.html
+  wget https://git.bioconductor.org -O $DATA_PATH/bio.html
   cat $DATA_PATH/bio.html | awk '{print $2}' | grep / | grep -v '\*' | awk '{ print "https://git.bioconductor.org/"$1}' > $DATA_PATH/bioconductor.org.$DT 
   cat $DATA_PATH/bioconductor.org.$DT | \
   while read r; do a=$(git ls-remote $r | awk '{print ";"$1}'); echo $r$a|sed 's/ //g'; 
   done | gzip > $DATA_PATH/bioconductor.org.$DT.heads &
 
-  wget "blitiri.com.ar/git/" -O $DATA_PATH/blitiri.com.ar.html
+  wget "https://blitiri.com.ar/git/" -O $DATA_PATH/blitiri.com.ar.html
   # wget "blitiri.com.ar/git/" --no-check-certificate -O blitiri.com.ar.html
   grep '<td class="name"><a href="' $DATA_PATH/blitiri.com.ar.html|sed 's|^\s*<td class="name"><a href="||;s|".*||' | sort -u | awk '{print "https://blitiri.com.ar/git/"$1}' > $DATA_PATH/blitiri.com.ar.$DT
 
@@ -216,7 +219,7 @@ function other_forges() {
   echo https://git.pleroma.social/pleroma/pleroma > $DATA_PATH/git.pleroma.social.$DT
 
   for i in $DATA_PATH/fedorapeople.org.fix.$DT $DATA_PATH/pagure.io.$DT $DATA_PATH/blitiri.com.ar.$DT $DATA_PATH/code.qt.io.$DT $DATA_PATH/gitlab.common-lisp.net.$DT $DATA_PATH/code.ill.fr.$DT $DATA_PATH/forgemia.inra.fr.$DT $DATA_PATH/git.unicaen.fr.$DT $DATA_PATH/notabug.org.$DT $DATA_PATH/git.unistra.fr.$DT $DATA_PATH/gcc.git.$DT $DATA_PATH/gitlab.fing.edu.uy.$DT $DATA_PATH/gitlab.huma-num.fr.$DT $DATA_PATH/gitlab.adullact.net.$DT $DATA_PATH/gitlab.irstea.fr.$DT $DATA_PATH/git.alpinelinux.org.$DT $DATA_PATH/gitlab.cerema.fr.$DT $DATA_PATH/git.openembedded.org.$DT $DATA_PATH/gite.lirmm.fr.$DT $DATA_PATH/git.torproject.org.$DT $DATA_PATH/git.xfce.org.$DT $DATA_PATH/git.yoctoproject.org.$DT $DATA_PATH/framagit.org.$DT $DATA_PATH/gitlab.freedesktop.org.$DT  $DATA_PATH/gitlab.ow2.org.$DT $DATA_PATH/gitbox.apache.org.$DT $DATA_PATH/gitlab.inria.fr.$DT
-  do (sed 's|/\.git/$||;s|^\s*||;s|//|//a:a@|;s|/tree/$||;s|/$||;s|blitiri.com.ar/git/r/|blitiri.com.ar/repos/|;' $i | while read r; do a=$(git ls-remote "$r" 2> $DATA_PATH/$i.err| awk '{print ";"$1}'); echo "$r$a"|sed 's/ //g'; done| gzip > $DATA_PATH/$i.heads; sleep 2) &
+  do (sed 's|/\.git/$||;s|^\s*||;s|//|//a:a@|;s|/tree/$||;s|/$||;s|blitiri.com.ar/git/r/|blitiri.com.ar/repos/|;' $i | while read r; do a=$(git ls-remote "$r" 2> $i.err| awk '{print ";"$1}'); echo "$r$a"|sed 's/ //g'; done| gzip > $i.heads; sleep 2) &
   done
 
   # pages 1-300
@@ -314,7 +317,8 @@ function other_forges() {
   perl -ane 'while(m|<a class="list" href="/gitweb/\?p=([^"]*);a=summary"|g){print "https://git.postgresql.org/git/$1\n"}' < $DATA_PATH/git.postgresql.org.html | sort -u > $DATA_PATH/git.postgresql.org.$DT
   cat $DATA_PATH/git.postgresql.org.$DT | while read r; do a=$(git ls-remote $r | awk '{print ";"$1}'); echo $r$a|sed 's/ //g'; done | gzip > $DATA_PATH/git.postgresql.org.$DT.heads &
 
-  wget http://git.savannah.gnu.org/cgit --no-check-certificate -O $DATA_PATH/git.savannah.gnu.org.html
+  wget http://git.savannah.gnu.org/cgit -O $DATA_PATH/git.savannah.gnu.org.html
+  #wget http://git.savannah.gnu.org/cgit --no-check-certificate -O $DATA_PATH/git.savannah.gnu.org.html
   # #perl -ane "while (m|<td class='sublevel-repo'><a title='[^']*' href='([^']*)'|g){print \"https://git.savannah.gnu.org\$1\n\";}" < git.savannah.gnu.org.html | sed 's|/cgit/|/git/|' | sort -u  > git.savannah.gnu.org.$DT
   #perl -ane "while (m|<td class='toplevel-repo'><a title='([^']*)'|g){print \"https://git.savannah.gnu.org/git/\$1\n\";}" < git.savannah.gnu.org.html | sed 's|/cgit/|/git/|' | sort -u  > git.savannah.gnu.org.$DT
   perl -ane "if (m|'/cgit/.*noalyss.git/([^\'/]*)/tree/|){print \"https://git.savannah.gnu.org/git/\$1\\n\";}
@@ -345,7 +349,7 @@ function sf_heads() {
   done
 
   # Now, do for existing
-  zcat $DATA_PATH/sf$PDT.prj.*.heads
+  zcat $PREV_DATA_PATH/sf$PDT.prj.*.heads
 }
 
 function update_old_gh_repos() {
@@ -416,20 +420,22 @@ function dump_mongo() {
 }
 
 # Driver
-test_remotes
+# test_remotes
 # github_discovery
 # bitbucket_discovery
 # sf_discovery
 # gitlab_discovery # needs revisit but we captured some
-# other_forges
-# sf_heads
-# update_old_gh_repos
-# wait
-# gl_heads
-# wait
-# gh_heads
-# wait
-# bb_heads
-# wait
-# dump_mongo
-# exit 0
+# other_forges # capture output for this to revise successful capture e.g. ./run2501.sh &> ~/24qX/other_forges.log
+# TODO: Need to restore previous heads into mongo prior execution of the following functions
+# mongorestore --gzip previous_run_path/dump/
+sf_heads
+update_old_gh_repos
+wait
+gl_heads
+wait
+gh_heads
+wait
+bb_heads
+wait
+dump_mongo
+exit 0
