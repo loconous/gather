@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# run2410.sh
+# run2507.sh
 # In the first stage bbRepos.py, glRepos.py, and ghUpdatedRepos.py populate mongodb, which is then used to
 # get project list, while the rest populate project list into XXXX.$DT
 # all XXXX.$DT need to be copied to da cluster
@@ -9,13 +9,13 @@
 # second stage typically requires a much larger disk to store *.heads
 # all *.heads need to be copied to da cluster
 # Last Modified By: Luis Gonzalez Villalobos
-# Last Modified Date: 01/31/2025
+# Last Modified Date: 07/01/2025
 
 # GLOBALS
-DT=202504
-DTdash=2025-04-30
-PDT=202501
-PDTdash=2025-01-31
+DT=202507
+DTdash=2025-07-31
+PDT=202504
+PDTdash=2025-04-30
 PT=$(date -d"$PDTdash" +%s)
 T=$(date -d"$DTdash" +%s)
 
@@ -25,8 +25,8 @@ T=$(date -d"$DTdash" +%s)
 # MODIFY THIS - CURRENTLY TAILORED FOR EXOSPHERE MACHINE
 # Make the link with: ln -sf /media/volume/WoC-Data/discovery/24q4/ /home/exouser/24q4 (e.g, ln -sf source_dir path_link)
 # /home/exouser/24q4 is a link to shared drive /media/volume/WoC-Data/discovery/24q4
-DATA_PATH="/home/exouser/25q1"
-PREV_DATA_PATH="/home/exouser/24q4"
+DATA_PATH="/home/exouser/2507"
+PREV_DATA_PATH="/home/exouser/2504"
 
 # Test Remotes
 # done through ssh_config -> ~/.ssh/config
@@ -42,8 +42,8 @@ function test_remotes() {
   git ls-remote deb:dpkg-team/dpkg
 }
 
-function github_discovery() {
-  # 1) Github scrape: Requires tokens
+function github_repos() {
+  # 1) Github scrape for repos: Requires tokens
 
   # Following fragment was used previously for splitting whole time between scrapes
   # We now use one of the six available keys to do a whole day discovery
@@ -59,9 +59,16 @@ function github_discovery() {
   #    echo $(head -$i tokens|tail -1) $ptt $tt 
   # done > tokens_date
 
-  # Ran: token_date_01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15
-  # Next: done
-  for i in {1..6}; do (r=$(head -$i token_date_15|tail -1); echo $r | python3 ghUpdatedReposWithCount.py gh$DT repos  &> $DATA_PATH/ghReposList$(echo $r | cut -d ' ' -f2).updt) & done
+  # Ran: token_date_01
+  # Next: 02
+  for i in {1..6}; do (r=$(head -$i token_date_01|tail -1); echo $r | python3 ghUpdatedReposWithCount.py gh$DT repos  &> $DATA_PATH/ghReposList$(echo $r | cut -d ' ' -f2).updt) & done
+}
+
+function github_forks() {
+  # 1) Github scrape for forks: Requires tokens
+  # Ran: token_date_01
+  # Next: 02
+  for i in {1..6}; do (r=$(head -$i token_date_01|tail -1); echo $r | python3 ghUpdatedForksWithCount.py gh$DT forks  &> $DATA_PATH/ghForksList$(echo $r | cut -d ' ' -f2).updt) & done
 }
 
 function bitbucket_discovery() {
@@ -421,21 +428,23 @@ function dump_mongo() {
 
 # Driver
 # test_remotes
-# github_discovery
+# github_repos
+github_forks
 # bitbucket_discovery
 # sf_discovery
 # gitlab_discovery # needs revisit but we captured some
 # other_forges # capture output for this to revise successful capture e.g. ./run2501.sh &> ~/24qX/other_forges.log
 # TODO: Need to restore previous heads into mongo prior execution of the following functions
 # mongorestore --gzip previous_run_path/dump/
-sf_heads
-update_old_gh_repos
-wait
-gl_heads
-wait
-gh_heads
-wait
-bb_heads
-wait
-dump_mongo
-exit 0
+# All of the following functions can run together
+# sf_heads
+# update_old_gh_repos
+# wait
+# gl_heads
+# wait
+# gh_heads
+# wait
+# bb_heads
+# wait
+# dump_mongo
+# exit 0
