@@ -1,7 +1,7 @@
 '''
-Script to scrape GitHub repos using the GraphQL API
-Obtains all repos that have been updated AFTER a specified date
-Scrapes all repos from that date up to the current time
+Script to scrape GitHub forked repos using the GraphQL API
+Obtains all forked repos that have been updated AFTER a specified date
+Scrapes all repos from that date up to the current time and logs repository counts
 '''
 import requests
 import json
@@ -36,14 +36,14 @@ interval = datetime.strptime(start, "%Y-%m-%dT%H:%M:%SZ")
 total = 0
 remaining = 5000
 
-# GraphQL query for updated repos
+# GraphQL query for forked repos
 query = '''{
   rateLimit {
     cost
     remaining
     resetAt
   }
-  search(query: "is:public archived:false fork:false mirror:false pushed:%s..%s", type: REPOSITORY, first: 100) {
+  search(query: "is:public archived:false fork:true mirror:false pushed:%s..%s", type: REPOSITORY, first: 100) {
     repositoryCount
     pageInfo {
       hasNextPage
@@ -69,11 +69,11 @@ jsonS = { 'query': query }
 def wait(reset):
   now = datetime.now()
   then = datetime.strptime(reset, "%Y-%m-%dT%H:%M:%SZ")
-  wait = (then-now).total_seconds() + 30
+  wait = (then - now).total_seconds() + 30
   time.sleep(wait)
 
 # helper function to loop through and insert repos into mongo db
-def gatherData (res, period_start, period_end):
+def gatherData(res, period_start, period_end):
   global total
   repos = res['data']['search']['nodes']
   for i in repos:
@@ -91,17 +91,16 @@ def gatherData (res, period_start, period_end):
   count_coll.insert_one(count_info)
 
   output = "Got {} repos. Total count is {}. Have {} calls remaining."
-  print (output.format(len(repos), total, remaining))
+  print(output.format(len(repos), total, remaining))
 
 # driver loop that iterates through repos in 10 minute intervals
-# iterates from the specified date up to the current time
-while (interval < end_time):
+while interval < end_time:
   fromStr = interval.strftime("%Y-%m-%dT%H:%M:%SZ")
   toStr = (interval + timedelta(minutes=10)).strftime("%Y-%m-%dT%H:%M:%SZ")
   nextQuery = query % (fromStr, toStr)
   jsonS['query'] = nextQuery
 
-  if (token == ''):
+  if token == '':
     print("Please provide your Github API token in the script. Exiting.")
     sys.exit()
 
@@ -119,8 +118,8 @@ while (interval < end_time):
       hasNextPage = res['data']['search']['pageInfo']['hasNextPage']
       gatherData(res, fromStr, toStr)
 
-      # check if we got more than 100 results and need to paginate
-      while (repos > 100 and hasNextPage):
+      # handle pagination
+      while repos > 100 and hasNextPage:
         endCursor = res['data']['search']['pageInfo']['endCursor']
         print("Have to paginate, using cursor {}".format(endCursor))
         index = nextQuery.find("REPOSITORY") + len("REPOSITORY")
