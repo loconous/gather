@@ -59,16 +59,16 @@ function github_repos() {
   #    echo $(head -$i tokens|tail -1) $ptt $tt 
   # done > tokens_date
 
-  # Ran: token_date_01
-  # Next: 02
-  for i in {1..6}; do (r=$(head -$i token_date_01|tail -1); echo $r | python3 ghUpdatedReposWithCount.py gh$DT repos  &> $DATA_PATH/ghReposList$(echo $r | cut -d ' ' -f2).updt) & done
+  # Ran: token_date_01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16
+  # Next: done
+  for i in {1..6}; do (r=$(head -$i token_date_16|tail -1); echo $r | python3 ghUpdatedReposWithCount.py gh$DT repos  &> $DATA_PATH/ghReposList$(echo $r | cut -d ' ' -f2).updt) & done
 }
 
 function github_forks() {
   # 1) Github scrape for forks: Requires tokens
-  # Ran: token_date_01
-  # Next: 02
-  for i in {1..6}; do (r=$(head -$i token_date_01|tail -1); echo $r | python3 ghUpdatedForksWithCount.py gh$DT forks  &> $DATA_PATH/ghForksList$(echo $r | cut -d ' ' -f2).updt) & done
+  # Ran: token_date_01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16
+  # Next: done
+  for i in {1..6}; do (r=$(head -$i token_date_16|tail -1); echo $r | python3 ghUpdatedForksWithCount.py gh$DT forks  &> $DATA_PATH/ghForksList$(echo $r | cut -d ' ' -f2).updt) & done
 }
 
 function bitbucket_discovery() {
@@ -89,7 +89,8 @@ function bitbucket_discovery() {
   #python3 bbRepos.py 2023-05-03 bitbucket$DT 2024-05-03 &> $DATA_PATH/bbRepos${DT}12.out &
 
   # Get only new, use heads for existing repos
-  python3 bbRepos.py 2024-05-03 bitbucket$DT 2025-05-03 &> $DATA_PATH/bbRepos${DT}0.out &
+  python3 bbRepos.py 2025-05-03 bitbucket$DT 2026-05-03 &> $DATA_PATH/bbRepos${DT}0.out &
+  python3 bbRepos.py 2024-05-03 bitbucket$DT 2025-05-03 &> $DATA_PATH/bbRepos${DT}1.out &
 }
 
 function sf_discovery() {
@@ -359,18 +360,6 @@ function sf_heads() {
   zcat $PREV_DATA_PATH/sf$PDT.prj.*.heads
 }
 
-function update_old_gh_repos() {
-  # get old repos for gh, these may have changed again
-  # Need to restore the previous db, use: mongorestore --host localhost:27017 --gzip -d gh$PDT <path_to_dump_files>/repos.bson.gz
-  python3 listU.py gh$PDT repos '{}' nameWithOwner | sed "s|^b'||;s|'$||" | sort -u > $DATA_PATH/gh$PDT.u
-  split -n l/50 -da2 $DATA_PATH/gh$PDT.u $DATA_PATH/gh$PDT.u.
-  for j in {00..49}
-  do cat $DATA_PATH/gh$PDT.u.$j | while read r; do
-    a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
-    done | gzip > $DATA_PATH/gh$PDT.u.$j.heads &
-  done
-}
-
 function gl_heads() {
   # Get update repos for GL
   python3 listU.py gl$DT repos '{ "last_activity_at" : { "$gt" : "'"$PDTdash"'" }}' http_url_to_repo | sed "s|^b'||;s|'$||"|sort -u > $DATA_PATH/gl$DT.new 
@@ -378,32 +367,85 @@ function gl_heads() {
   done | gzip > $DATA_PATH/gl$DT.new.heads &
 }
 
-function gh_heads() {
+function update_old_gh_repos() {
+  # get old repos for gh, these may have changed again
+  # Need to restore the previous db, use: mongorestore --host localhost:27017 --gzip -d gh$PDT <path_to_dump_files>/repos.bson.gz
+  python3 listU.py gh$PDT repos '{}' nameWithOwner | sed "s|^b'||;s|'$||" | sort -u > $DATA_PATH/ghRepos$PDT.u
+  split -n l/50 -da2 $DATA_PATH/ghRepos$PDT.u $DATA_PATH/ghRepos$PDT.u.
+  for j in {00..49}
+  do cat $DATA_PATH/ghRepos$PDT.u.$j | while read r; do
+    a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
+    done | gzip > $DATA_PATH/ghRepos$PDT.u.$j.heads &
+  done
+}
+
+function update_old_gh_forks() {
+  # Does the same as get old repos but for forks, this should not be run until 2510, since we are just getting forks on 2507
+  # Mongo now holds a collection for forks, as well as repos
+  # Need to restore the previous db, use: mongorestore --host localhost:27017 --gzip -d gh$PDT <path_to_dump_files>/repos.bson.gz
+  python3 listU.py gh$PDT forks '{}' nameWithOwner | sed "s|^b'||;s|'$||" | sort -u > $DATA_PATH/ghForks$PDT.u
+  split -n l/50 -da2 $DATA_PATH/ghForks$PDT.u $DATA_PATH/ghForks$PDT.u.
+  for j in {00..49}
+  do cat $DATA_PATH/ghForks$PDT.u.$j | while read r; do
+    a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
+    done | gzip > $DATA_PATH/ghForks$PDT.u.$j.heads &
+  done
+}
+
+function ghRepos_heads() {
   # Get updated, no-forks for GH
   #python3 listU.py gh$DT repos '{"isFork" : false}' nameWithOwner | sed "s|^b'||;s|'$||" | sort -u > gh$DT.u
-  python3 listU.py gh$DT repos '{ "pushedAt" : { "$gt" : "'"$PDTdash"'"} }' nameWithOwner | sed "s|^b'||;s|'$||" | sort -u > $DATA_PATH/gh$DT.u
+  python3 listU.py gh$DT repos '{ "pushedAt" : { "$gt" : "'"$PDTdash"'"} }' nameWithOwner | sed "s|^b'||;s|'$||" | sort -u > $DATA_PATH/ghRepos$DT.u
   # cat gh$PDT.u.*[0-9] | sort -t\; | join -t\; -v2 - gh$DT.u > gh$DT.new.u
-  split -n l/50 -da2 $DATA_PATH/gh$DT.u $DATA_PATH/gh$DT.u.
+  split -n l/50 -da2 $DATA_PATH/ghRepos$DT.u $DATA_PATH/ghRepos$DT.u.
   
   for j in {00..12}
-  do cat $DATA_PATH/gh$DT.u.$j | while read r; do
+  do cat $DATA_PATH/ghRepos$DT.u.$j | while read r; do
     a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
-    done | gzip > $DATA_PATH/gh$DT.u.$j.heads &
+    done | gzip > $DATA_PATH/ghRepos$DT.u.$j.heads &
   done
   for j in {13..26}
-  do cat $DATA_PATH/gh$DT.u.$j | while read r; do
+  do cat $DATA_PATH/ghRepos$DT.u.$j | while read r; do
     a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
-    done | gzip > $DATA_PATH/gh$DT.u.$j.heads &
+    done | gzip > $DATA_PATH/ghRepos$DT.u.$j.heads &
   done
   for j in {26..38}
-  do cat $DATA_PATH/gh$DT.u.$j | while read r; do
+  do cat $DATA_PATH/ghRepos$DT.u.$j | while read r; do
     a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
-    done | gzip > $DATA_PATH/gh$DT.u.$j.heads &
+    done | gzip > $DATA_PATH/ghRepos$DT.u.$j.heads &
   done
   for j in {39..49}
-  do cat $DATA_PATH/gh$DT.u.$j | while read r; do
+  do cat $DATA_PATH/ghRepos$DT.u.$j | while read r; do
     a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
-    done | gzip > $DATA_PATH/gh$DT.u.$j.heads &
+    done | gzip > $DATA_PATH/ghRepos$DT.u.$j.heads &
+  done
+}
+
+function ghForks_heads() {
+  # Get updated forks for GH, targeting the forks collection from db
+  python3 listU.py gh$DT forks '{ "pushedAt" : { "$gt" : "'"$PDTdash"'"} }' nameWithOwner | sed "s|^b'||;s|'$||" | sort -u > $DATA_PATH/ghForks$DT.u
+  # cat gh$PDT.u.*[0-9] | sort -t\; | join -t\; -v2 - gh$DT.u > gh$DT.new.u
+  split -n l/50 -da2 $DATA_PATH/ghForks$DT.u $DATA_PATH/ghForks$DT.u.
+  
+  for j in {00..12}
+  do cat $DATA_PATH/ghForks$DT.u.$j | while read r; do
+    a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
+    done | gzip > $DATA_PATH/ghForks$DT.u.$j.heads &
+  done
+  for j in {13..26}
+  do cat $DATA_PATH/ghForks$DT.u.$j | while read r; do
+    a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
+    done | gzip > $DATA_PATH/ghForks$DT.u.$j.heads &
+  done
+  for j in {26..38}
+  do cat $DATA_PATH/ghForks$DT.u.$j | while read r; do
+    a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
+    done | gzip > $DATA_PATH/ghForks$DT.u.$j.heads &
+  done
+  for j in {39..49}
+  do cat $DATA_PATH/ghForks$DT.u.$j | while read r; do
+    a=$(git ls-remote gh:$r | awk '{print ";"$1}'); echo gh:$r$a | sed 's/ //g';
+    done | gzip > $DATA_PATH/ghForks$DT.u.$j.heads &
   done
 }
 
@@ -429,22 +471,27 @@ function dump_mongo() {
 # Driver
 # test_remotes
 # github_repos
-github_forks
+# github_forks
 # bitbucket_discovery
 # sf_discovery
 # gitlab_discovery # needs revisit but we captured some
 # other_forges # capture output for this to revise successful capture e.g. ./run2501.sh &> ~/24qX/other_forges.log
 # TODO: Need to restore previous heads into mongo prior execution of the following functions
-# mongorestore --gzip previous_run_path/dump/
+# mongorestore --gzip previous_run_path/dump/ # Only do this if current mongodb does not hold previous run (PDT)
 # All of the following functions can run together
-# sf_heads
-# update_old_gh_repos
+sf_heads
+wait
+gl_heads
+wait
+update_old_gh_repos
+wait
+ghRepos_heads
+wait
+# update_old_gh_forks # This needs to run on 2510, no previous collection for forks
 # wait
-# gl_heads
-# wait
-# gh_heads
-# wait
-# bb_heads
-# wait
-# dump_mongo
-# exit 0
+ghForks_heads
+wait
+bb_heads
+wait
+dump_mongo
+exit 0
