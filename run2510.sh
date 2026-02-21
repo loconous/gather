@@ -59,16 +59,16 @@ function github_repos() {
   #    echo $(head -$i tokens|tail -1) $ptt $tt 
   # done > tokens_date
 
-  # Ran: token_date_01
-  # Next: 
-  for i in {1..6}; do (r=$(head -$i token_date_01|tail -1); echo $r | python3 ghUpdatedReposWithCount.py gh$DT repos  &> $DATA_PATH/ghReposList$(echo $r | cut -d ' ' -f2).updt) & done
+  # Ran: token_date_01, 02, 03, 04, 05, 06, 07, 08, 09, 10, 11, 12, 13, 14, 15, 16
+  # Next: done..
+  for i in {1..6}; do (r=$(head -$i token_date_16|tail -1); echo $r | python3 ghUpdatedReposWithCount.py gh$DT repos  &> $DATA_PATH/ghReposList$(echo $r | cut -d ' ' -f2).updt) & done
 }
 
 function github_forks() {
   # 1) Github scrape for forks: Requires tokens
-  # Ran: 
-  # Next: 
-  for i in {1..6}; do (r=$(head -$i token_date_01|tail -1); echo $r | python3 ghUpdatedForksWithCount.py gh$DT forks  &> $DATA_PATH/ghForksList$(echo $r | cut -d ' ' -f2).updt) & done
+  # Ran: token_date_01, 02, 03, 04, 05, 06, 07, 09, 09, 10, 11, 12, 13, 14, 15, 16
+  # Next: 17
+  for i in {1..6}; do (r=$(head -$i token_date_16|tail -1); echo $r | python3 ghUpdatedForksWithCount.py gh$DT forks  &> $DATA_PATH/ghForksList$(echo $r | cut -d ' ' -f2).updt) & done
 }
 
 function bitbucket_discovery() {
@@ -469,7 +469,7 @@ function dump_mongo() {
 }
 
 # Driver
-test_remotes
+# test_remotes
 # github_repos
 # github_forks
 # bitbucket_discovery
@@ -479,19 +479,19 @@ test_remotes
 # TODO: Need to restore previous heads into mongo prior execution of the following functions
 # mongorestore --gzip previous_run_path/dump/ # Only do this if current mongodb does not hold previous run (PDT)
 # All of the following functions can run together
-# sf_heads
-# wait
-# gl_heads
-# wait
-# update_old_gh_repos
-# wait
-# ghRepos_heads
-# wait
-# update_old_gh_forks # This needs to run on 2510, no previous collection for forks
-# wait
-# ghForks_heads
-# wait
-# bb_heads
-# wait
-# dump_mongo
+sf_heads
+wait
+gl_heads
+wait
+update_old_gh_repos
+wait
+ghRepos_heads
+wait
+update_old_gh_forks # This needs to run on 2510, no previous collection for forks
+wait
+ghForks_heads
+wait
+bb_heads
+wait
+dump_mongo
 exit 0
